@@ -5,8 +5,14 @@ import 'screen/profile_screen.dart';
 import 'crm/crm.dart';
 import 'ecommerce/ecommerce.dart';
 import 'ecommerce/profile_user.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized(); // Necesario para async antes de runApp
+  await initializeDateFormatting(
+    'es_ES',
+    null,
+  ); // Carga datos de localización para español
   runApp(const MyApp());
 }
 
@@ -55,7 +61,8 @@ class _MyAppState extends State<MyApp> {
       routes: {
         '/login': (context) => LoginScreen(setToken: setToken),
         '/profile': (context) => const ProfileScreen(),
-        '/crm': (context) => const CrmScreen(),
+        '/crm': (context) => const CRM(),
+
         '/app-ecommerce': (context) {
           final user =
               ModalRoute.of(context)!.settings.arguments

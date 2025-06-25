@@ -123,7 +123,7 @@ class _EcommerceScreenState extends State<EcommerceScreen> {
         headers: {'Authorization': 'Bearer $token'},
       );
       if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
+        final List<dynamic> data = json.decode(utf8.decode(response.bodyBytes));
         final filtered =
             categoryId != null
                 ? data.where((p) => p['categoria'] == categoryId).toList()
@@ -231,7 +231,9 @@ class _EcommerceScreenState extends State<EcommerceScreen> {
       );
 
       if (response.statusCode == 200) {
-        setState(() => categories = json.decode(response.body));
+        setState(
+          () => categories = json.decode(utf8.decode(response.bodyBytes)),
+        );
       } else {
         setState(() => error = 'Error al cargar las categorías');
       }
