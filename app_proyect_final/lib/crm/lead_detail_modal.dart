@@ -936,52 +936,136 @@ class LeadDetailController extends ChangeNotifier {
 
   void abrirWhatsapp(BuildContext context) async {
     final telefono = lead?['telefono'];
-    final nombre = lead?['nombre'];
-    if (telefono == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('No hay número')));
+    final nombre = lead?['nombre'] ?? 'Estimado/a';
+
+    if (telefono == null || telefono.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No hay número de teléfono disponible')),
+      );
       return;
     }
-    final mensaje = Uri.encodeComponent('Hola $nombre, ');
-    final uri = Uri.parse('https://wa.me/$telefono?text=$mensaje');
 
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    // Limpiar el número de teléfono
+    final telefonoLimpio = telefono.replaceAll(RegExp(r'[^\d+]'), '');
+
+    // Formatear para Bolivia si es necesario
+    String telefonoFormateado = telefonoLimpio;
+    if (!telefonoLimpio.startsWith('591') &&
+        !telefonoLimpio.startsWith('+591')) {
+      if (telefonoLimpio.length == 8) {
+        telefonoFormateado = '591$telefonoLimpio';
+      }
+    }
+
+    final mensaje = Uri.encodeComponent('Hola $nombre, ¿cómo estás?');
+
+    // Lista de URLs para intentar en orden
+    final urls = [
+      'https://wa.me/$telefonoFormateado?text=$mensaje',
+      'whatsapp://send?phone=$telefonoFormateado&text=$mensaje',
+    ];
+
+    bool success = false;
+
+    for (String url in urls) {
+      try {
+        final uri = Uri.parse(url);
+
+        if (await canLaunchUrl(uri)) {
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+          success = true;
+          break;
+        }
+      } catch (e) {
+        print('Error con $url: $e');
+        continue;
+      }
+    }
+
+    if (success) {
       registrarInteraccionAutomatica(
         'whatsapp',
-        'Se envió mensaje por WhatsApp a $telefono',
+        'Se envió mensaje por WhatsApp a $telefonoFormateado',
+      );
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('WhatsApp abierto correctamente')),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No se pudo abrir WhatsApp')),
+        const SnackBar(content: Text('WhatsApp no está disponible')),
       );
     }
   }
 
   void abrirCorreo(BuildContext context) async {
-    final email = lead?['email'];
-    if (email == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('No hay correo')));
+    final email = lead?['email'] ?? lead?['correo'];
+    final nombre = lead?['nombre'] ?? 'Estimado/a';
+
+    if (email == null || email.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No hay dirección de correo disponible')),
+      );
       return;
     }
 
-    final uri = Uri(
-      scheme: 'mailto',
-      path: email,
-      query: 'subject=Contacto desde CRM',
+    // Validar formato básico de email
+    if (!_esEmailValido(email)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Dirección de correo no válida')),
+      );
+      return;
+    }
+
+    final asunto = Uri.encodeComponent('Contacto desde la aplicación');
+    final cuerpo = Uri.encodeComponent(
+      'Hola $nombre,\n\nEspero que te encuentres bien.\n\n'
+      'Me pongo en contacto contigo para...\n\n'
+      'Saludos cordiales.',
     );
 
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri);
-      registrarInteraccionAutomatica('email', 'Se envió correo a $email');
+    // Lista de URLs para intentar en orden
+    final urls = [
+      'mailto:$email?subject=$asunto&body=$cuerpo',
+      'https://mail.google.com/mail/?view=cm&to=$email&su=$asunto&body=$cuerpo',
+    ];
+
+    bool success = false;
+
+    for (String url in urls) {
+      try {
+        final uri = Uri.parse(url);
+
+        if (await canLaunchUrl(uri)) {
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+          success = true;
+          break;
+        }
+      } catch (e) {
+        print('Error con $url: $e');
+        continue;
+      }
+    }
+
+    if (success) {
+      registrarInteraccionAutomatica(
+        'email',
+        'Se abrió correo electrónico para $email',
+      );
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Aplicación de correo abierta')),
+      );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No se pudo abrir el cliente de correo')),
+        const SnackBar(content: Text('No se pudo abrir el correo electrónico')),
       );
     }
+  }
+
+  // Método auxiliar para validar email
+  bool _esEmailValido(String email) {
+    return RegExp(
+      r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
+    ).hasMatch(email);
   }
 
   List<Map<String, dynamic>> getAccionesDisponibles(String estado) {

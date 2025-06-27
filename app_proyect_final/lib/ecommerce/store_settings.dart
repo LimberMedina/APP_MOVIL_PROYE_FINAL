@@ -79,7 +79,7 @@ class _StoreSettingsState extends State<StoreSettings> {
         headers: headers,
       );
       final estiloRes = await http.get(
-        Uri.parse('$baseUrl/store-style/mi-estilo/'),
+        Uri.parse('$baseUrl/store-style/privado/mi-estilo/'),
         headers: headers,
       );
       final bloquesRes = await http.get(
@@ -230,7 +230,7 @@ class _StoreSettingsState extends State<StoreSettings> {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token');
     await http.patch(
-      Uri.parse('$baseUrl/store-style/mi-estilo/'),
+      Uri.parse('$baseUrl/store-style/privado/mi-estilo/'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
